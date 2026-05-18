@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vocabulary Bingo Deluxe</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js for procedural audio -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Kids-friendly font -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: url('https://uploads.onecompiler.io/44p8jz55v/44p8jz73m/360_F_781900027_6ssK6mtypCecNmhpnCyFqe3Qf8rPQcO6.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            touch-action: manipulation;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+        
+        .font-kids { font-family: 'Fredoka One', cursive; }
+        
+        .screen-container { display: none; }
+        .screen-container.active { display: block; }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 8px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+        }
+
+        /* SPOTLIGHT EFFECT */
+        .spotlight-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 450px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .spotlight-bg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 500px;
+            height: 500px;
+            background: conic-gradient(
+                from 0deg,
+                transparent 0deg,
+                rgba(255, 255, 0, 0.4) 20deg,
+                transparent 40deg,
+                rgba(0, 255, 255, 0.4) 80deg,
+                transparent 100deg,
+                rgba(255, 0, 255, 0.4) 140deg,
+                transparent 160deg,
+                rgba(255, 255, 0, 0.4) 200deg,
+                transparent 220deg,
+                rgba(0, 255, 255, 0.4) 260deg,
+                transparent 280deg,
+                rgba(255, 0, 255, 0.4) 320deg,
+                transparent 340deg
+            );
+            filter: blur(40px);
+            border-radius: 50%;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        .active-spotlight .spotlight-bg {
+            opacity: 1;
+            animation: rotate-spotlight 8s linear infinite;
+        }
+
+        @keyframes rotate-spotlight {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* ROTATING DECK CAROUSEL */
+        .deck-orbit {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .orbiting-card {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 80px;
+            height: 80px;
+            background: white;
+            border: 4px solid #ddd;
+            border-radius: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            transition: all 0.1s linear;
+            opacity: 0.6;
+            margin-top: -40px;
+            margin-left: -40px;
+        }
+
+        .shake-card {
+            animation: card-shake 0.15s infinite alternate;
+        }
+
+        @keyframes card-shake {
+            0% { transform: translate(-3px, -3px) rotate(-2deg); }
+            100% { transform: translate(3px, 3px) rotate(2deg); }
+        }
+
+        .glowing-card {
+            animation: glow-pulse 1.5s infinite alternate, scale-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 0 60px rgba(234, 179, 8, 0.8);
+            z-index: 20;
+        }
+
+        #review-focus-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .focus-card {
+            background: white;
+            border: 12px solid #fb923c; 
+            border-radius: 4rem;
+            padding: 4rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transform: scale(1.2);
+            box-shadow: 0 0 80px rgba(251, 146, 60, 0.9), 0 0 30px rgba(255, 255, 255, 0.5);
+            animation: focus-entrance 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            position: relative;
+        }
+
+        .focus-card::before, .focus-card::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 60%;
+            background: #fb923c;
+            border-radius: 20px;
+            box-shadow: 0 0 40px #fb923c;
+            animation: glow-blink 0.8s infinite alternate;
+        }
+        .focus-card::before { left: -30px; }
+        .focus-card::after { right: -30px; }
+
+        @keyframes focus-entrance {
+            0% { transform: scale(0.5) translateY(100px); opacity: 0; }
+            100% { transform: scale(1.2) translateY(0); opacity: 1; }
+        }
+
+        @keyframes glow-blink {
+            from { opacity: 0.5; filter: brightness(1); }
+            to { opacity: 1; filter: brightness(1.5); }
+        }
+
+        @keyframes glow-pulse {
+            from { box-shadow: 0 0 30px rgba(234, 179, 8, 0.5); transform: scale(1); }
+            to { box-shadow: 0 0 70px rgba(234, 179, 8, 1); transform: scale(1.05); }
+        }
+
+        @keyframes scale-in {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .bingo-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .history-bar {
+            scrollbar-width: thin;
+            scrollbar-color: #93c5fd rgba(255,255,255,0.5);
+        }
+
+        .btn-game {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        .btn-game:active {
+            transform: translateY(4px);
+        }
+
+        .instruction-card {
+            background: white;
+            border-radius: 2rem;
+            padding: 1.5rem;
+            border: 4px solid #e0e7ff;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        .timer-pulse {
+            animation: pulse-red 1s infinite alternate;
+        }
+
+        @keyframes pulse-red {
+            from { transform: scale(1); color: #dc2626; }
+            to { transform: scale(1.1); color: #ef4444; }
+        }
+
+        .custom-scroll::-webkit-scrollbar { width: 8px; }
+        .custom-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #93c5fd; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="game-container" class="relative w-full max-w-5xl glass-panel rounded-[3rem] overflow-hidden p-6 md:p-10 flex flex-col min-h-[750px] mx-4">
+        
+        <!-- HEADER -->
+        <div class="flex justify-between items-center mb-6 border-b-4 border-blue-200/50 pb-4">
+            <button onclick="showScreen('menu')" class="text-2xl md:text-3xl font-kids text-blue-600 hover:scale-105 transition-transform flex items-center gap-2">
+                <span class="bg-blue-600 text-white p-2 rounded-xl">🎒</span> BINGO DELUXE
+            </button>
+            <div class="flex items-center gap-3">
+                <button id="bgm-toggle" onclick="toggleBGM()" class="btn-game bg-white border-2 border-blue-300 hover:border-blue-500 rounded-full w-12 h-12 flex items-center justify-center text-2xl shadow-sm">
+                    🔇
+                </button>
+                <div id="status-label" class="bg-blue-600 text-white px-6 py-2 rounded-full font-bold text-sm tracking-wide shadow-md uppercase">
+                    MAIN MENU
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN: MENU -->
+        <div id="screen-menu" class="screen-container active text-center flex-1 flex flex-col justify-center">
+            <h1 class="text-6xl font-kids text-blue-700 mb-4 drop-shadow-sm">Classroom Fun!</h1>
+            <p class="text-gray-600 mb-12 text-xl font-medium">Choose an activity to begin:</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+                <button onclick="showScreen('review')" class="bg-white border-4 border-orange-400 p-8 rounded-[3rem] hover:shadow-xl hover:bg-orange-50 transition-all group">
+                    <div class="text-7xl mb-4 group-hover:rotate-12 transition-transform">📖</div>
+                    <div class="text-2xl font-kids text-orange-600">A. REVIEW</div>
+                </button>
+
+                <button onclick="showScreen('card')" class="bg-white border-4 border-green-400 p-8 rounded-[3rem] hover:shadow-xl hover:bg-green-50 transition-all group">
+                    <div class="text-7xl mb-4 group-hover:scale-110 transition-transform">📝</div>
+                    <div class="text-2xl font-kids text-green-600">B. BINGO CARD</div>
+                </button>
+
+                <button onclick="showScreen('bingo')" class="bg-white border-4 border-purple-400 p-8 rounded-[3rem] hover:shadow-xl hover:bg-purple-50 transition-all group">
+                    <div class="text-7xl mb-4 group-hover:bounce transition-all">🔔</div>
+                    <div class="text-2xl font-kids text-purple-600">C. CALLER</div>
+                </button>
+            </div>
+        </div>
+
+        <!-- SCREEN: REVIEW -->
+        <div id="screen-review" class="screen-container flex-1">
+            <h2 class="text-4xl font-kids text-orange-600 mb-8 text-center">Tap and Listen! 👂</h2>
+            <div id="review-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6"></div>
+        </div>
+
+        <div id="review-focus-overlay" onclick="closeReviewFocus()">
+            <div id="focus-content" class="focus-card">
+                <div id="focus-icon" class="text-[180px] mb-4">🍳</div>
+                <div id="focus-text" class="text-7xl font-kids text-orange-600 uppercase">BREAKFAST</div>
+            </div>
+        </div>
+
+        <!-- SCREEN: CARD CREATOR -->
+        <div id="screen-card" class="screen-container flex-1">
+            <div class="flex flex-col lg:flex-row gap-10">
+                <div class="w-full lg:w-1/3 text-center lg:text-left flex flex-col">
+                    <h2 class="text-4xl font-kids text-green-600 mb-4">Build Your Card</h2>
+                    
+                    <div class="bg-white/80 rounded-[2rem] p-6 mb-6 shadow-lg border-4 border-green-200">
+                        <div class="flex items-center justify-center gap-4 mb-4">
+                            <span class="text-4xl">⏰</span>
+                            <span id="timer-text" class="text-6xl font-kids text-green-700">05:00</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="startTimer()" id="btn-start" class="btn-game bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl text-xs shadow-md">START</button>
+                            <button onclick="pauseTimer()" id="btn-pause" class="btn-game bg-orange-400 hover:bg-orange-500 text-white font-bold py-3 rounded-xl text-xs shadow-md opacity-50 pointer-events-none">PAUSE</button>
+                            <button onclick="resetTimer()" id="btn-again" class="btn-game bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl text-xs shadow-md">AGAIN</button>
+                        </div>
+                    </div>
+
+                    <div id="word-bank" class="flex flex-wrap gap-2 justify-center lg:justify-start flex-1 content-start max-h-[300px] overflow-y-auto pr-2 custom-scroll"></div>
+                </div>
+                
+                <div class="w-full lg:w-2/3 bg-white/40 p-8 rounded-[4rem] border-4 border-white/60 flex flex-col items-center justify-center shadow-inner">
+                    <div id="student-grid" class="bingo-grid w-full max-w-[450px]"></div>
+                    <div id="card-status-msg" class="mt-6 text-2xl font-kids text-red-600 hidden animate-bounce">Time is up! Stop writing!</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN: BINGO CALLER -->
+        <div id="screen-bingo" class="screen-container flex-1 flex flex-col">
+            <div id="caller-instructions" class="flex-1 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
+                <h2 class="text-5xl font-kids text-purple-700 mb-8">How to Play?</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 w-full px-4">
+                    <div class="instruction-card flex flex-col items-center text-center">
+                        <div class="bg-purple-100 w-24 h-24 rounded-full flex items-center justify-center mb-4 text-5xl">🎴</div>
+                        <div class="text-xl font-bold text-purple-700 mb-2">1. Pick a Card</div>
+                        <p class="text-gray-600 text-sm">Teacher picks a random word.</p>
+                    </div>
+                    <div class="instruction-card flex flex-col items-center text-center">
+                        <div class="bg-red-100 w-24 h-24 rounded-full flex items-center justify-center mb-4 text-5xl">❌</div>
+                        <div class="text-xl font-bold text-red-700 mb-2">2. Cross it (X)</div>
+                        <p class="text-gray-600 text-sm">Mark the word if it's on your card!</p>
+                    </div>
+                    <div class="instruction-card flex flex-col items-center text-center">
+                        <div class="bg-yellow-100 w-24 h-24 rounded-full flex items-center justify-center mb-4 text-5xl">🏆</div>
+                        <div class="text-xl font-bold text-yellow-700 mb-2">3. Win Bingo!</div>
+                        <p class="text-gray-600 text-sm">Shout BINGO when you have all 8!</p>
+                    </div>
+                </div>
+                <button onclick="startBingoGame()" class="btn-game bg-purple-600 hover:bg-purple-700 text-white font-kids text-4xl px-16 py-6 rounded-[3rem] shadow-xl">
+                    LET'S PLAY! 🎲
+                </button>
+            </div>
+
+            <div id="caller-gameplay" class="hidden flex-1 flex flex-col relative">
+                <div class="flex flex-col items-center justify-center py-6 flex-1">
+                    
+                    <div id="caller-display-container" class="spotlight-container">
+                        <!-- Spotlight Background -->
+                        <div id="spotlight-bg" class="spotlight-bg"></div>
+                        
+                        <!-- Rotating Pool Orbit -->
+                        <div id="deck-orbit" class="deck-orbit"></div>
+                        
+                        <!-- The Drawn Card -->
+                        <div id="caller-card" class="w-80 h-80 bg-white rounded-[4rem] border-8 border-yellow-400 flex flex-col items-center justify-center shadow-2xl opacity-0 scale-50 transition-all duration-500 relative z-20">
+                            <div id="caller-icon" class="text-[140px]">❓</div>
+                            <div id="caller-text" class="text-4xl font-kids text-blue-600 uppercase mt-4 text-center px-4 line-clamp-2">---</div>
+                        </div>
+                    </div>
+
+                    <button id="draw-btn" onclick="drawCard()" class="mt-4 bg-purple-600 hover:bg-purple-700 text-white font-kids text-4xl px-16 py-8 rounded-[3rem] shadow-[0_12px_0_rgb(107,33,168)] active:shadow-none active:translate-y-3 transition-all relative z-30">
+                        DRAW NEXT! 🎲
+                    </button>
+                </div>
+
+                <div class="mt-auto pt-8 border-t-4 border-dashed border-blue-200">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-kids text-blue-500 text-xl tracking-wider uppercase">Called Words</h3>
+                        <span id="deck-count" class="text-sm font-bold bg-blue-100 text-blue-600 px-4 py-1 rounded-full">15 LEFT</span>
+                    </div>
+                    <div id="history-list" class="flex gap-4 overflow-x-auto pb-4 history-bar min-h-[120px]"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Exactly your 15 target vocabulary words, strictly mapped.
+        const VOCABULARY = [
+            { word: 'breakfast', icon: '🍳' },
+            { word: 'lunch', icon: '🍱' },
+            { word: 'dinner', icon: '🍽️' },
+            { word: 'bread', icon: '🍞' },
+            { word: 'chicken', icon: '🍗' },
+            { word: 'salad', icon: '🥗' },
+            { word: 'shoes', icon: '👟👟' },
+            { word: 'backpack', icon: '🎒' },
+            { word: 'computer', icon: '💻' },
+            { word: 'watch', icon: '⌚' },
+            { word: 'bathroom', icon: '🛁' },
+            { word: 'bedroom', icon: '🛏️' },
+            { word: 'living room', icon: '🛋️' },
+            { word: 'dining room', icon: '🚪' },
+            { word: 'yard', icon: '🏡' }
+        ];
+
+        let drawPool = [];
+        let history = [];
+        let studentCardWords = Array(9).fill(null);
+        let audioInit = false;
+        let timerInterval = null;
+        let timeLeft = 300; 
+        let isTimerPaused = true;
+        let orbitAngle = 0;
+        let orbitRafId = null;
+        let isShuffling = false;
+
+        // Background Music Variables
+        let bgmSynth = null;
+        let bgmBassSynth = null;
+        let bgmNoiseSynth = null;
+        let bgmLoop = null;
+        let bgmPlaying = false;
+
+        // Drum Roll Sound Synths
+        let drumRollSynth = null;
+        let cymbalSynth = null;
+
+        // Upbeat, syncopated melodies
+        const melody = [
+            "C5", "E5", "G5", "C6", "A5", "C6", "G5", null,
+            "F5", "A5", "C6", "A5", "G5", "B5", "D6", "B5",
+            "C5", "E5", "G5", "C6", "A5", "F6", "E6", "D6",
+            "C6", "G5", "E5", "C5", "D5", "G5", "C5", null
+        ];
+        
+        const bassNotes = [
+            "C3", "E3", "G3", "C4", "F3", "A3", "C4", "F4",
+            "G3", "B3", "D4", "G4", "C3", "E3", "G3", "C4"
+        ];
+
+        let speechVoices = [];
+
+        function populateVoices() {
+            if (typeof speechSynthesis !== 'undefined') {
+                speechVoices = speechSynthesis.getVoices();
+            }
+        }
+        
+        populateVoices();
+        if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = populateVoices;
+        }
+
+        async function initAudio() {
+            if (audioInit) return;
+            if (typeof Tone !== 'undefined') {
+                try {
+                    await Tone.start();
+                    audioInit = true;
+                    populateVoices();
+                } catch (e) {
+                    console.error("Audio initialization failed:", e);
+                }
+            }
+        }
+
+        async function toggleBGM() {
+            await initAudio();
+            const btn = document.getElementById('bgm-toggle');
+            if (!btn) return;
+            
+            if (!bgmPlaying) {
+                if (!bgmSynth) {
+                    Tone.Transport.bpm.value = 138;
+
+                    // Lead melody synth
+                    bgmSynth = new Tone.Synth({
+                        oscillator: { type: "triangle" },
+                        envelope: { attack: 0.01, decay: 0.12, sustain: 0.15, release: 0.3 }
+                    }).toDestination();
+                    bgmSynth.volume.value = -20;
+
+                    // Bass walking track
+                    bgmBassSynth = new Tone.Synth({
+                        oscillator: { type: "sawtooth" },
+                        envelope: { attack: 0.02, decay: 0.2, sustain: 0.35, release: 0.5 }
+                    });
+                    
+                    const bassFilter = new Tone.Filter(350, "lowpass").toDestination();
+                    bgmBassSynth.connect(bassFilter);
+                    bgmBassSynth.volume.value = -14;
+
+                    // Pink noise hat rhythm
+                    bgmNoiseSynth = new Tone.NoiseSynth({
+                        noise: { type: "pink" },
+                        envelope: { attack: 0.005, decay: 0.04, release: 0.04 }
+                    }).toDestination();
+                    bgmNoiseSynth.volume.value = -36;
+
+                    let melIndex = 0;
+                    let bassIndex = 0;
+
+                    bgmLoop = new Tone.Loop(time => {
+                        const note = melody[melIndex % melody.length];
+                        if (note) {
+                            bgmSynth.triggerAttackRelease(note, "16n", time);
+                        }
+                        
+                        const bass = bassNotes[bassIndex % bassNotes.length];
+                        bgmBassSynth.triggerAttackRelease(bass, "16n", time);
+                        bassIndex++;
+
+                        if (melIndex % 2 === 1) {
+                            bgmNoiseSynth.triggerAttack(time);
+                        }
+                        
+                        melIndex++;
+                    }, "8n");
+                }
+
+                Tone.Transport.start();
+                bgmLoop.start(0);
+                bgmPlaying = true;
+                btn.innerText = "🎵";
+                btn.classList.add('bg-green-100', 'border-green-300');
+                btn.classList.remove('bg-white', 'border-blue-300');
+            } else {
+                if (bgmLoop) {
+                    bgmLoop.stop();
+                }
+                bgmPlaying = false;
+                btn.innerText = "🔇";
+                btn.classList.remove('bg-green-100', 'border-green-300');
+                btn.classList.add('bg-white', 'border-blue-300');
+            }
+        }
+
+        async function playDrumRoll(durationMs, callback) {
+            await initAudio();
+            if (!audioInit) {
+                if (callback) callback();
+                return;
+            }
+
+            if (!drumRollSynth) {
+                drumRollSynth = new Tone.NoiseSynth({
+                    noise: { type: "pink" },
+                    envelope: { attack: 0.001, decay: 0.08, sustain: 0, release: 0.08 }
+                });
+                const rollFilter = new Tone.Filter(600, "bandpass").toDestination();
+                drumRollSynth.connect(rollFilter);
+                drumRollSynth.volume.value = -6;
+            }
+
+            if (!cymbalSynth) {
+                cymbalSynth = new Tone.MetalSynth({
+                    frequency: 200,
+                    envelope: { attack: 0.001, decay: 1.2, release: 1.2 },
+                    harmonicity: 5.1,
+                    resonance: 8000,
+                    modulationIndex: 32
+                }).toDestination();
+                cymbalSynth.volume.value = -6;
+            }
+
+            const hitInterval = 50; 
+            const totalHits = Math.floor(durationMs / hitInterval);
+            let currentHit = 0;
+
+            const interval = setInterval(() => {
+                if (currentHit >= totalHits) {
+                    clearInterval(interval);
+                    cymbalSynth.triggerAttackRelease("8n");
+                    if (callback) callback();
+                } else {
+                    const progress = currentHit / totalHits;
+                    const swellDB = -14 + (progress * 17); 
+                    drumRollSynth.volume.value = swellDB;
+
+                    const dynamicVariance = Math.sin(currentHit * 0.4) * 3;
+                    drumRollSynth.volume.value += dynamicVariance;
+
+                    drumRollSynth.triggerAttack();
+                    currentHit++;
+                }
+            }, hitInterval);
+        }
+
+        function speak(text) {
+            if (typeof speechSynthesis !== 'undefined') {
+                speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                
+                if (speechVoices.length === 0) {
+                    populateVoices();
+                }
+
+                const englishVoice = speechVoices.find(voice => 
+                    voice.lang.startsWith('en') && 
+                    (voice.name.includes('Google') || voice.name.includes('Natural') || voice.name.includes('Premium'))
+                ) || speechVoices.find(voice => voice.lang.startsWith('en-US')) 
+                  || speechVoices.find(voice => voice.lang.startsWith('en'));
+
+                if (englishVoice) {
+                    utterance.voice = englishVoice;
+                }
+
+                utterance.rate = 0.85; 
+                utterance.pitch = 1.15; 
+                speechSynthesis.speak(utterance);
+            }
+        }
+
+        function playBell() {
+            if (typeof Tone !== 'undefined' && audioInit) {
+                try {
+                    const synth = new Tone.PolySynth(Tone.Synth).toDestination();
+                    synth.triggerAttackRelease(["C5", "E5", "G5"], "8n");
+                } catch (e) {
+                    console.warn("Sound play error:", e);
+                }
+            }
+        }
+
+        function showScreen(screenId) {
+            initAudio(); 
+            document.querySelectorAll('.screen-container').forEach(s => s.classList.remove('active'));
+            const target = document.getElementById(`screen-${screenId}`);
+            if (target) target.classList.add('active');
+            
+            const label = document.getElementById('status-label');
+            if (label) {
+                if (screenId === 'menu') {
+                    label.innerText = "MAIN MENU";
+                    pauseTimer(); 
+                    cancelAnimationFrame(orbitRafId);
+                } else if (screenId === 'review') {
+                    label.innerText = "LET'S PRACTICE!";
+                    renderReview();
+                } else if (screenId === 'card') {
+                    label.innerText = "BUILD YOUR CARD";
+                    resetBingoCardState();
+                } else if (screenId === 'bingo') {
+                    label.innerText = "BINGO CALLER";
+                    const instructions = document.getElementById('caller-instructions');
+                    const gameplay = document.getElementById('caller-gameplay');
+                    if (instructions) instructions.classList.remove('hidden');
+                    if (gameplay) gameplay.classList.add('hidden');
+                    resetBingo();
+                }
+            }
+        }
+
+        function startTimer() {
+            if (!isTimerPaused) return;
+            isTimerPaused = false;
+            const startBtn = document.getElementById('btn-start');
+            const pauseBtn = document.getElementById('btn-pause');
+            if (startBtn) startBtn.classList.add('opacity-50', 'pointer-events-none');
+            if (pauseBtn) pauseBtn.classList.remove('opacity-50', 'pointer-events-none');
+            
+            timerInterval = setInterval(() => {
+                if (timeLeft > 0) {
+                    timeLeft--;
+                    updateTimerUI();
+                } else {
+                    timerExpired();
+                }
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            isTimerPaused = true;
+            clearInterval(timerInterval);
+            const startBtn = document.getElementById('btn-start');
+            const pauseBtn = document.getElementById('btn-pause');
+            if (startBtn) startBtn.classList.remove('opacity-50', 'pointer-events-none');
+            if (pauseBtn) pauseBtn.classList.add('opacity-50', 'pointer-events-none');
+        }
+
+        function resetTimer() {
+            pauseTimer();
+            timeLeft = 300;
+            updateTimerUI();
+            const statusMsg = document.getElementById('card-status-msg');
+            const wordBank = document.getElementById('word-bank');
+            const timerEl = document.getElementById('timer-text');
+            if (statusMsg) statusMsg.classList.add('hidden');
+            if (wordBank) wordBank.classList.remove('pointer-events-none', 'opacity-50');
+            if (timerEl) {
+                timerEl.classList.remove('timer-pulse');
+                timerEl.style.color = ''; 
+            }
+        }
+
+        function updateTimerUI() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            const display = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            const timerEl = document.getElementById('timer-text');
+            if (timerEl) {
+                timerEl.innerText = display;
+                if (timeLeft <= 30) timerEl.classList.add('timer-pulse');
+            }
+        }
+
+        function timerExpired() {
+            clearInterval(timerInterval);
+            isTimerPaused = true;
+            const statusMsg = document.getElementById('card-status-msg');
+            const wordBank = document.getElementById('word-bank');
+            if (statusMsg) statusMsg.classList.remove('hidden');
+            if (wordBank) wordBank.classList.add('pointer-events-none', 'opacity-50');
+            speak("Time is up! Stop writing!");
+        }
+
+        function renderReview() {
+            const grid = document.getElementById('review-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            VOCABULARY.forEach(item => {
+                const el = document.createElement('div');
+                el.className = "bg-white border-4 border-orange-100 rounded-[2.5rem] p-8 flex flex-col items-center cursor-pointer hover:border-orange-400 hover:-translate-y-2 transition-all transform active:scale-95 shadow-lg";
+                el.innerHTML = `<div class="text-6xl mb-4">${item.icon}</div><div class="font-kids text-orange-600 uppercase text-2xl text-center break-all px-2">${item.word}</div>`;
+                el.onclick = () => showReviewFocus(item);
+                grid.appendChild(el);
+            });
+        }
+
+        function showReviewFocus(item) {
+            const overlay = document.getElementById('review-focus-overlay');
+            const focusIcon = document.getElementById('focus-icon');
+            const focusText = document.getElementById('focus-text');
+            if (focusIcon) focusIcon.innerText = item.icon;
+            if (focusText) focusText.innerText = item.word;
+            if (overlay) {
+                overlay.style.display = 'flex';
+                speak(item.word);
+            }
+        }
+
+        function closeReviewFocus() {
+            const overlay = document.getElementById('review-focus-overlay');
+            if (overlay) overlay.style.display = 'none';
+        }
+
+        function resetBingoCardState() {
+            studentCardWords = Array(9).fill(null);
+            studentCardWords[4] = { word: 'FREE', icon: '⭐' }; 
+            resetTimer();
+            renderStudentGrid();
+            renderWordBank();
+        }
+
+        function renderWordBank() {
+            const bank = document.getElementById('word-bank');
+            if (!bank) return;
+            bank.innerHTML = '';
+            VOCABULARY.forEach(item => {
+                const used = studentCardWords.some(s => s && s.word === item.word);
+                const btn = document.createElement('button');
+                btn.className = `p-4 rounded-2xl border-4 font-bold transition-all text-lg ${used ? 'bg-gray-100 border-gray-200 text-gray-300 pointer-events-none scale-90' : 'bg-white border-green-200 text-green-700 hover:border-green-400 shadow-md active:scale-95'}`;
+                btn.innerHTML = `${item.icon} ${item.word}`;
+                btn.onclick = () => {
+                    const firstEmpty = studentCardWords.findIndex((val, i) => i !== 4 && val === null);
+                    if (firstEmpty !== -1) {
+                        studentCardWords[firstEmpty] = item;
+                        renderStudentGrid();
+                        renderWordBank();
+                        speak(item.word);
+                    }
+                };
+                bank.appendChild(btn);
+            });
+        }
+
+        function renderStudentGrid() {
+            const grid = document.getElementById('student-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            studentCardWords.forEach((item, idx) => {
+                const div = document.createElement('div');
+                div.className = `aspect-square bg-white/90 border-4 rounded-[2rem] flex flex-col items-center justify-center shadow-md transition-all cursor-pointer ${idx === 4 ? 'bg-yellow-100 border-yellow-400' : 'border-green-100'}`;
+                if (item) {
+                    if (idx === 4) {
+                        div.innerHTML = `<div class="text-5xl mb-1">${item.icon}</div><div class="text-xs font-kids text-gray-400 uppercase">${item.word}</div>`;
+                    } else {
+                        div.innerHTML = `<div class="text-3xl font-kids text-blue-600 uppercase text-center px-2 break-words leading-tight">${item.word}</div>`;
+                    }
+                } else {
+                    div.innerHTML = `<div class="text-green-100 font-kids text-5xl">?</div>`;
+                }
+                div.onclick = () => { if (item) speak(item.word); };
+                grid.appendChild(div);
+            });
+        }
+
+        function startBingoGame() {
+            const instructions = document.getElementById('caller-instructions');
+            const gameplay = document.getElementById('caller-gameplay');
+            if (instructions) instructions.classList.add('hidden');
+            if (gameplay) gameplay.classList.remove('hidden');
+            updateOrbit();
+            speak("Let's play Bingo!");
+        }
+
+        function resetBingo() {
+            drawPool = [...VOCABULARY];
+            history = [];
+            const container = document.getElementById('caller-display-container');
+            const card = document.getElementById('caller-card');
+            const drawBtn = document.getElementById('draw-btn');
+            const deckCount = document.getElementById('deck-count');
+            const callerIcon = document.getElementById('caller-icon');
+            const callerText = document.getElementById('caller-text');
+
+            if (container) container.classList.remove('active-spotlight');
+            if (card) {
+                card.classList.remove('glowing-card', 'opacity-100', 'scale-100');
+                card.classList.add('opacity-0', 'scale-50');
+            }
+            if (callerIcon) callerIcon.innerText = '❓';
+            if (callerText) callerText.innerText = '---';
+            if (drawBtn) {
+                drawBtn.disabled = false;
+                drawBtn.innerText = "DRAW NEXT! 🎲";
+            }
+            if (deckCount) deckCount.innerText = "15 LEFT";
+            
+            renderHistory();
+            renderOrbit();
+        }
+
+        function renderOrbit() {
+            const orbitContainer = document.getElementById('deck-orbit');
+            if (!orbitContainer) return;
+            orbitContainer.innerHTML = '';
+            drawPool.forEach((item, i) => {
+                const card = document.createElement('div');
+                card.className = 'orbiting-card';
+                card.id = `orbit-card-${i}`;
+                card.innerText = item.icon;
+                orbitContainer.appendChild(card);
+            });
+        }
+
+        function updateOrbit() {
+            const radiusX = 350;
+            const radiusY = 180;
+            
+            const speed = isShuffling ? 0.08 : 0.005;
+            orbitAngle += speed;
+            
+            drawPool.forEach((_, i) => {
+                const el = document.getElementById(`orbit-card-${i}`);
+                if (!el) return;
+                const angle = orbitAngle + (i * (Math.PI * 2 / Math.max(1, drawPool.length)));
+                const x = Math.cos(angle) * radiusX;
+                const y = Math.sin(angle) * radiusY;
+                const scale = (Math.sin(angle) + 2) / 3; 
+                const zIndex = Math.floor(scale * 10);
+                
+                el.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+                el.style.zIndex = zIndex;
+                el.style.opacity = (scale * 0.8).toString();
+            });
+            
+            orbitRafId = requestAnimationFrame(updateOrbit);
+        }
+
+        function fireworkAndConfettiCelebration() {
+            const duration = 2000;
+            const animationEnd = Date.now() + duration;
+            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
+
+            if (typeof confetti !== 'undefined') {
+                confetti({
+                    particleCount: 50,
+                    spread: 60,
+                    origin: { x: 0, y: 0.9 },
+                    angle: 60
+                });
+                confetti({
+                    particleCount: 50,
+                    spread: 60,
+                    origin: { x: 1, y: 0.9 },
+                    angle: 120
+                });
+
+                const interval = setInterval(() => {
+                    const timeLeft = animationEnd - Date.now();
+                    if (timeLeft <= 0) {
+                        return clearInterval(interval);
+                    }
+
+                    const particleCount = 20;
+                    confetti(Object.assign({}, defaults, { 
+                        particleCount, 
+                        origin: { x: 0.3 + Math.random() * 0.4, y: 0.2 + Math.random() * 0.3 } 
+                    }));
+                }, 250);
+            }
+        }
+
+        function drawCard() {
+            if (drawPool.length === 0 || isShuffling) return;
+            
+            isShuffling = true;
+            const drawBtn = document.getElementById('draw-btn');
+            if (drawBtn) drawBtn.disabled = true;
+
+            const container = document.getElementById('caller-display-container');
+            const card = document.getElementById('caller-card');
+            
+            if (container) container.classList.remove('active-spotlight');
+            if (card) {
+                card.classList.remove('glowing-card', 'opacity-100', 'scale-100');
+                card.classList.add('opacity-0', 'scale-50');
+            }
+
+            playDrumRoll(1500, () => {
+                isShuffling = false;
+                
+                const idx = Math.floor(Math.random() * drawPool.length);
+                const drawn = drawPool.splice(idx, 1)[0];
+                history.unshift(drawn);
+
+                renderOrbit();
+
+                const callerIcon = document.getElementById('caller-icon');
+                const callerText = document.getElementById('caller-text');
+                const deckCount = document.getElementById('deck-count');
+
+                if (callerIcon) callerIcon.innerText = drawn.icon;
+                if (callerText) callerText.innerText = drawn.word;
+                
+                if (container) container.classList.add('active-spotlight');
+                if (card) card.classList.add('glowing-card', 'opacity-100', 'scale-100');
+                
+                fireworkAndConfettiCelebration();
+                
+                if (deckCount) deckCount.innerText = `${drawPool.length} LEFT`;
+                
+                speak(drawn.word);
+                renderHistory();
+
+                if (drawPool.length === 0) {
+                    if (drawBtn) {
+                        drawBtn.disabled = true;
+                        drawBtn.innerText = "GAME OVER!";
+                    }
+                } else {
+                    if (drawBtn) drawBtn.disabled = false;
+                }
+            });
+
+            let cycleCount = 0;
+            const cycleInterval = setInterval(() => {
+                if (!isShuffling) {
+                    if (card) card.classList.remove('shake-card');
+                    clearInterval(cycleInterval);
+                    return;
+                }
+                if (card) card.classList.add('shake-card', 'opacity-80', 'scale-90');
+                const randomSample = VOCABULARY[cycleCount % VOCABULARY.length];
+                const callerIcon = document.getElementById('caller-icon');
+                const callerText = document.getElementById('caller-text');
+                if (callerIcon) callerIcon.innerText = randomSample.icon;
+                if (callerText) callerText.innerText = randomSample.word;
+                cycleCount++;
+            }, 60);
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('history-list');
+            if (!list) return;
+            list.innerHTML = '';
+            history.forEach(item => {
+                const el = document.createElement('div');
+                el.className = "flex-shrink-0 w-24 h-24 bg-white border-4 border-purple-100 rounded-3xl flex flex-col items-center justify-center shadow-md animate-in fade-in slide-in-from-bottom-2";
+                el.innerHTML = `<div class="text-4xl">${item.icon}</div><div class="text-[10px] font-bold text-purple-400 uppercase text-center truncate w-full px-1">${item.word}</div>`;
+                list.appendChild(el);
+            });
+        }
+    </script>
+</body>
+</html>
